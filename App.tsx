@@ -7,12 +7,16 @@ import { CardSortingTest } from './components/CardSortingTest';
 import { AdminPanel } from './components/AdminPanel';
 import { SUBMISSIONS_KEY, INITIAL_SUBMISSIONS, CURRENT_USER_KEY } from './constants';
 
+// Import JSON data directly. This makes them part of the build process.
+import usersData from './users.json';
+import tasksData from './tasks.json';
+
 type View = 'loading' | 'login' | 'dashboard' | 'card_sorting' | 'admin_panel' | 'error';
 
 const App: React.FC = () => {
-    // Static data from files
-    const [users, setUsers] = useState<User[]>([]);
-    const [tasks, setTasks] = useState<CardSortingTask[]>([]);
+    // Static data is now initialized directly from imports
+    const [users, setUsers] = useState<User[]>(usersData);
+    const [tasks, setTasks] = useState<CardSortingTask[]>(tasksData);
     
     // Dynamic data from localStorage
     const [submissions, setSubmissions] = useState<CardSortingSubmission[]>([]);
@@ -24,50 +28,31 @@ const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
 
-    // Load all data on initial mount
+    // Load dynamic state from localStorage on initial mount
     useEffect(() => {
-        const loadAppData = async () => {
-            try {
-                // Fetch static users and tasks from public JSON files
-                const [usersResponse, tasksResponse] = await Promise.all([
-                    fetch('./users.json'),
-                    fetch('./tasks.json')
-                ]);
-
-                if (!usersResponse.ok || !tasksResponse.ok) {
-                    throw new Error('No se pudieron cargar los archivos de configuración (usuarios o tareas).');
+        try {
+            // Load dynamic submissions from localStorage
+            const savedSubmissions = localStorage.getItem(SUBMISSIONS_KEY);
+            setSubmissions(savedSubmissions ? JSON.parse(savedSubmissions) : INITIAL_SUBMISSIONS);
+            
+            // Check for a logged-in user in localStorage
+            const savedUserKey = localStorage.getItem(CURRENT_USER_KEY);
+            if (savedUserKey) {
+                // usersData is available directly from the import
+                const savedUser = usersData.find(u => u.id === savedUserKey);
+                if (savedUser) {
+                    setCurrentUser(savedUser);
+                    setCurrentView('dashboard');
+                    return; // Exit early if user is found
                 }
-
-                const usersData: User[] = await usersResponse.json();
-                const tasksData: CardSortingTask[] = await tasksResponse.json();
-
-                setUsers(usersData);
-                setTasks(tasksData);
-
-                // Load dynamic submissions from localStorage
-                const savedSubmissions = localStorage.getItem(SUBMISSIONS_KEY);
-                setSubmissions(savedSubmissions ? JSON.parse(savedSubmissions) : INITIAL_SUBMISSIONS);
-                
-                // Check for a logged-in user in localStorage
-                const savedUserKey = localStorage.getItem(CURRENT_USER_KEY);
-                if (savedUserKey) {
-                    const savedUser = usersData.find(u => u.id === savedUserKey);
-                    if (savedUser) {
-                        setCurrentUser(savedUser);
-                        setCurrentView('dashboard');
-                        return; // Exit early if user is found
-                    }
-                }
-
-                setCurrentView('login');
-            } catch (err: any) {
-                console.error("Error al cargar los datos de la aplicación:", err);
-                setError(err.message || 'Ocurrió un error inesperado. Revisa la consola para más detalles.');
-                setCurrentView('error');
             }
-        };
 
-        loadAppData();
+            setCurrentView('login');
+        } catch (err: any) {
+            console.error("Error al cargar los datos guardados de la aplicación:", err);
+            setError(err.message || 'Ocurrió un error inesperado. Revisa la consola para más detalles.');
+            setCurrentView('error');
+        }
     }, []);
 
     const handleLogin = (user: User) => {
@@ -145,14 +130,14 @@ const App: React.FC = () => {
     const renderContent = () => {
         switch (currentView) {
             case 'loading':
-                return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white"><p className="text-xl animate-pulse">Cargando datos de la aplicación...</p></div>;
+                return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white"><p className="text-xl animate-pulse">Cargando aplicación...</p></div>;
             case 'error':
                  return (
                     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
                         <div className="w-full max-w-md p-8 space-y-4 bg-red-900/50 border border-red-700 rounded-2xl text-center">
-                            <h1 className="text-2xl font-bold text-white">Error en la Carga</h1>
+                            <h1 className="text-2xl font-bold text-white">Error en la Aplicación</h1>
                             <p className="text-red-200">{error}</p>
-                            <p className="text-red-300 text-sm">Por favor, asegúrate de que los archivos <code>users.json</code> y <code>tasks.json</code> existan en el directorio raíz del proyecto y vuelve a intentarlo.</p>
+                            <p className="text-red-300 text-sm">Ocurrió un error al iniciar la aplicación. Intenta limpiar el almacenamiento de tu navegador y recargar la página.</p>
                         </div>
                     </div>
                 );
