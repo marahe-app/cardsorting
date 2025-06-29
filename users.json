@@ -1,0 +1,24 @@
+
+[
+  {
+    "id": "admin-key-01",
+    "firstName": "Manuel",
+    "lastName": "Sirera",
+    "role": "admin",
+    "assignedTasks": ["task-01","task-02"]
+  },
+  {
+    "id": "user-key-02",
+    "firstName": "Antonio",
+    "lastName": "",
+    "role": "user",
+    "assignedTasks": ["task-01","task-02"]
+  },
+  {
+    "id": "user-key-03",
+    "firstName": "Carlos",
+    "lastName": "Rodríguez",
+    "role": "user",
+    "assignedTasks": []
+  }
+]

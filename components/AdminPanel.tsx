@@ -1,0 +1,376 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import type { Card, CardSortingTask, CardSortingSubmission, User } from '../types';
+
+const DonutChart: React.FC<{ percentage: number; size?: number }> = ({ percentage, size = 100 }) => {
+    const strokeWidth = 10;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    return (
+        <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+            <svg className="transform -rotate-90" width={size} height={size}>
+                <circle
+                    className="text-gray-600"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+                <circle
+                    className="text-green-500"
+                    stroke="currentColor"
+                    strokeWidth={strokeWidth}
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                    style={{ strokeDasharray: circumference, strokeDashoffset: offset, transition: 'stroke-dashoffset 0.5s ease-in-out' }}
+                />
+            </svg>
+            <span className="absolute text-xl font-bold text-white">{`${Math.round(percentage)}%`}</span>
+        </div>
+    );
+};
+
+const StatCard: React.FC<{ title: string; value?: string | number; children?: React.ReactNode }> = ({ title, value, children }) => (
+    <div className="bg-gray-700/50 p-4 rounded-lg flex items-center justify-between">
+        <div>
+            <p className="text-gray-400 text-sm font-medium">{title}</p>
+            {value !== undefined && <p className="text-2xl font-bold text-white">{value}</p>}
+        </div>
+        {children}
+    </div>
+);
+
+/**
+ * Normaliza un nombre de categoría para una comparación consistente.
+ * Convierte a minúsculas, quita espacios en blanco de los extremos y elimina acentos.
+ * @param name El nombre de la categoría a normalizar.
+ * @returns El nombre normalizado.
+ */
+const normalizeCategoryName = (name: string): string => {
+    if (!name) return '';
+    return name
+        .toLowerCase()
+        .trim()
+        .normalize("NFD") // Separa caracteres como acentos de las letras
+        .replace(/[\u0300-\u036f]/g, ""); // Elimina los caracteres de acentos
+};
+
+
+/**
+ * Encuentra la clave de un grupo existente para un nombre de categoría dado.
+ * La heurística es que si un nombre comienza con el otro, se consideran relacionados.
+ * @param groups Mapa de los grupos existentes.
+ * @param normalizedName Nombre ya normalizado (minúsculas, sin espacios, sin acentos) a buscar.
+ * @returns La clave del grupo coincidente o nulo si no se encuentra.
+ */
+const findGroupKey = (groups: Map<string, any>, normalizedName: string): string | null => {
+    for (const key of groups.keys()) {
+        // Agrupa "usuario" con "usuarios", "propiedad" con "propiedades", etc.
+        if (key.startsWith(normalizedName) || normalizedName.startsWith(key)) {
+            return key;
+        }
+    }
+    return null;
+};
+
+
+const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSortingSubmission[]; users: User[]; }> = ({ tasks, submissions, users }) => {
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(tasks.length > 0 ? tasks[0].id : null);
+    const [activeTab, setActiveTab] = useState<'matrix' | 'cards' | 'categories'>('matrix');
+
+    const resultsData = useMemo(() => {
+        if (!selectedTaskId) return null;
+
+        const task = tasks.find(t => t.id === selectedTaskId);
+        if (!task) return null;
+
+        const relevantSubmissions = submissions.filter(s => s.taskId === selectedTaskId);
+        const assignedUsers = users.filter(u => u.role === 'user' && (u.assignedTasks || []).includes(selectedTaskId));
+        const completionRate = assignedUsers.length > 0 ? (relevantSubmissions.length / assignedUsers.length) * 100 : 0;
+
+        // Agreement Matrix Calculation
+        const agreementMatrix = new Map<string, number>();
+        relevantSubmissions.forEach(submission => {
+            submission.results.forEach(category => {
+                for (let i = 0; i < category.cards.length; i++) {
+                    for (let j = i + 1; j < category.cards.length; j++) {
+                        const cardAId = category.cards[i].id;
+                        const cardBId = category.cards[j].id;
+                        const key = [cardAId, cardBId].sort().join('--');
+                        agreementMatrix.set(key, (agreementMatrix.get(key) || 0) + 1);
+                    }
+                }
+            });
+        });
+
+        // Card Analysis with Intelligent Grouping
+        const cardAnalysis = new Map<string, { categoryGroups: Map<string, { displayName: string; count: number; originalNames: string[] }> }>();
+        task.cards.forEach(card => cardAnalysis.set(card.id, { categoryGroups: new Map() }));
+        
+        relevantSubmissions.forEach(submission => {
+            submission.results.forEach(category => {
+                if (!category.name || !category.name.trim()) return;
+
+                const normalizedName = normalizeCategoryName(category.name);
+                if (!normalizedName) return; // Saltar si el nombre normalizado está vacío
+
+                category.cards.forEach(card => {
+                    const analysis = cardAnalysis.get(card.id);
+                    if (analysis) {
+                        const groups = analysis.categoryGroups;
+                        const groupKey = findGroupKey(groups, normalizedName);
+
+                        if (groupKey) {
+                            const group = groups.get(groupKey)!;
+                            group.count++;
+                            // Añadir el nombre original a la lista para el tooltip si no está ya presente.
+                            // Esto colecciona todas las variaciones ("Usuario", "usuario", etc.)
+                            if (!group.originalNames.includes(category.name)) {
+                                group.originalNames.push(category.name);
+                            }
+                        } else {
+                            // Crear un nuevo grupo usando el nombre normalizado como clave.
+                            // El `displayName` será el primer nombre que el usuario introdujo para este grupo.
+                            groups.set(normalizedName, {
+                                displayName: category.name,
+                                count: 1,
+                                originalNames: [category.name],
+                            });
+                        }
+                    }
+                });
+            });
+        });
+
+
+        return { task, relevantSubmissions, completionRate, agreementMatrix, cardAnalysis, assignedUsersCount: assignedUsers.length };
+
+    }, [selectedTaskId, tasks, submissions, users]);
+
+    const getAgreementPercentage = (cardAId: string, cardBId: string) => {
+        if (!resultsData || resultsData.relevantSubmissions.length === 0) return 0;
+        const key = [cardAId, cardBId].sort().join('--');
+        const count = resultsData.agreementMatrix.get(key) || 0;
+        return (count / resultsData.relevantSubmissions.length) * 100;
+    };
+    
+    const getHeatmapColor = (percentage: number) => {
+        if (percentage > 80) return 'bg-indigo-600/80';
+        if (percentage > 60) return 'bg-indigo-600/60';
+        if (percentage > 40) return 'bg-indigo-600/40';
+        if (percentage > 20) return 'bg-indigo-600/20';
+        if (percentage > 0) return 'bg-indigo-600/10';
+        return 'bg-gray-800';
+    }
+
+    const renderTabs = () => (
+        <div className="flex border-b border-gray-700 mb-6">
+            <button onClick={() => setActiveTab('matrix')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'matrix' ? 'border-b-2 border-indigo-400 text-white' : 'text-gray-400 hover:text-white'}`}>Matriz de Acuerdo</button>
+            <button onClick={() => setActiveTab('cards')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'cards' ? 'border-b-2 border-indigo-400 text-white' : 'text-gray-400 hover:text-white'}`}>Análisis por Tarjeta</button>
+        </div>
+    );
+    
+    if (!resultsData) {
+         return (
+             <div className="text-center py-10 px-6 bg-gray-800 rounded-lg">
+                <p className="text-gray-400 text-lg">No hay tareas con resultados para mostrar.</p>
+             </div>
+         );
+    }
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-grow">
+                     <h3 className="text-2xl font-semibold text-white">Resultados de Tareas</h3>
+                     <p className="text-gray-400">Selecciona una tarea para ver el análisis de los resultados.</p>
+                </div>
+                {tasks.length > 0 && (
+                    <select onChange={e => setSelectedTaskId(e.target.value)} className="sm:w-1/3 p-3 bg-gray-700 rounded-md border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500" value={selectedTaskId || ''}>
+                        {tasks.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}
+                    </select>
+                )}
+            </div>
+
+            <div className="bg-gray-900/50 rounded-xl p-6 space-y-8">
+                <h4 className="text-2xl font-bold text-indigo-300">{resultsData.task.title}</h4>
+
+                {/* --- STATS --- */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatCard title="Tasa de Finalización">
+                         <DonutChart percentage={resultsData.completionRate} size={80} />
+                    </StatCard>
+                    <StatCard title="Envíos Recibidos" value={resultsData.relevantSubmissions.length} />
+                    <StatCard title="Participantes Asignados" value={resultsData.assignedUsersCount} />
+                </div>
+                
+                {/* --- TABS --- */}
+                {renderTabs()}
+                
+                {/* --- CONTENT --- */}
+                {activeTab === 'matrix' && (
+                    <div className="overflow-x-auto">
+                        <h5 className="text-xl font-semibold mb-4 text-white">Matriz de Acuerdo de Tarjetas</h5>
+                        <p className="text-gray-400 mb-4 text-sm">El porcentaje indica la frecuencia con la que dos tarjetas se colocaron en la misma categoría.</p>
+                        <table className="w-full border-collapse text-xs text-left">
+                            <thead>
+                                <tr>
+                                    <th className="sticky left-0 bg-gray-800 p-2 border-b border-gray-600 z-10"></th>
+                                    {resultsData.task.cards.map(card => (
+                                        <th key={card.id} className="p-2 border-b border-gray-600 align-bottom">
+                                            <span className="[writing-mode:vertical-lr] transform rotate-180 text-gray-300 font-normal whitespace-nowrap">{card.content}</span>
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {resultsData.task.cards.map((rowCard, rowIndex) => (
+                                    <tr key={rowCard.id} className="hover:bg-gray-700/50">
+                                        <th className="sticky left-0 bg-gray-800 p-2 border-b border-r border-gray-600 text-gray-300 font-normal text-left z-10">{rowCard.content}</th>
+                                        {resultsData.task.cards.map((colCard, colIndex) => {
+                                            if (colIndex < rowIndex) {
+                                                const percentage = getAgreementPercentage(rowCard.id, colCard.id);
+                                                return (
+                                                    <td key={colCard.id} className={`p-2 border-b border-gray-700 text-center ${getHeatmapColor(percentage)}`}>
+                                                        <span className="font-mono text-white">{Math.round(percentage)}%</span>
+                                                    </td>
+                                                );
+                                            }
+                                            if (colIndex === rowIndex) {
+                                                return <td key={colCard.id} className="p-2 border-b border-gray-700 bg-gray-600"></td>
+                                            }
+                                            return <td key={colCard.id} className="p-2 border-b border-gray-700"></td>
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+                {activeTab === 'cards' && (
+                     <div className="space-y-4">
+                        <h5 className="text-xl font-semibold text-white">Análisis de Ubicación por Tarjeta</h5>
+                        <p className="text-gray-400 mb-4 text-sm italic">Nombres de categorías similares (ej. "Usuario", "usuarios", "Módulo") se agrupan automáticamente.</p>
+                         {resultsData.task.cards.map(card => {
+                             const analysis = resultsData.cardAnalysis.get(card.id);
+                             if (!analysis) return null;
+                             
+                             const groups = Array.from(analysis.categoryGroups.values());
+                             const sortedGroups = groups.sort((a, b) => b.count - a.count);
+                             const totalPlacements = sortedGroups.reduce((sum, group) => sum + group.count, 0);
+
+                             return (
+                                 <div key={card.id} className="p-4 bg-gray-700/80 rounded-md">
+                                     <p className="font-bold text-white text-lg">{card.content}</p>
+                                     {sortedGroups.length > 0 ? (
+                                         <div className="mt-3 space-y-2">
+                                             {sortedGroups.map(group => {
+                                                  const percentage = totalPlacements > 0 ? (group.count / totalPlacements) * 100 : 0;
+                                                  const tooltipText = `Agrupa: ${[...new Set(group.originalNames)].join(', ')}`;
+                                                  return (
+                                                     <div key={group.displayName} title={tooltipText}>
+                                                        <div className="flex justify-between text-sm mb-1">
+                                                            <span className="text-indigo-300">"{group.displayName}"</span>
+                                                            <span className="text-gray-400">{group.count} {group.count === 1 ? 'vez' : 'veces'} ({Math.round(percentage)}%)</span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-600 rounded-full h-2">
+                                                            <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                                        </div>
+                                                     </div>
+                                                  )
+                                             })}
+                                         </div>
+                                     ) : (
+                                         <p className="mt-2 text-gray-400">Esta tarjeta no fue ubicada en ninguna categoría.</p>
+                                     )}
+                                 </div>
+                             )
+                         })}
+                     </div>
+                )}
+
+            </div>
+        </div>
+    );
+};
+
+interface AdminPanelProps {
+    tasks: CardSortingTask[];
+    users: User[];
+    onBack: () => void;
+}
+
+export const AdminPanel: React.FC<AdminPanelProps> = ({ tasks, users, onBack }) => {
+    const [submissions, setSubmissions] = useState<CardSortingSubmission[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchSubmissions = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+                const response = await fetch('https://marahe-backend.onrender.com/uxui/getUXUItasks');
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Error al obtener los resultados: ${response.status} ${response.statusText}. Detalles: ${errorText}`);
+                }
+                const data: CardSortingSubmission[] = await response.json();
+                setSubmissions(data || []);
+
+            } catch (err: any) {
+                setError(err.message || 'No se pudieron cargar los resultados desde el servidor.');
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchSubmissions();
+    }, []);
+
+    const renderResultsContent = () => {
+        if (isLoading) {
+            return (
+                <div className="text-center py-10">
+                    <p className="text-lg text-gray-400 animate-pulse">Cargando resultados desde el servidor...</p>
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                 <div className="text-center py-10 px-6 bg-red-900/20 border border-red-700 rounded-lg">
+                    <p className="font-semibold text-red-300 text-lg">Error al Cargar Resultados</p>
+                    <p className="text-red-400 mt-2">{error}</p>
+                </div>
+            );
+        }
+        
+        if (tasks.length === 0) {
+            return (
+                 <div className="text-center py-10 px-6 bg-gray-800 rounded-lg">
+                    <p className="text-gray-400 text-lg">No hay tareas creadas en el sistema.</p>
+                </div>
+            )
+        }
+
+        return <TaskResults tasks={tasks} submissions={submissions} users={users} />;
+    };
+
+    return (
+        <div className="container mx-auto max-w-7xl py-10 px-4">
+             <button onClick={onBack} className="mb-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                &larr; Volver al Panel
+            </button>
+            <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8">
+                {renderResultsContent()}
+            </div>
+        </div>
+    );
+};
