@@ -216,7 +216,20 @@ const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSorting
                 {activeTab === 'matrix' && (
                     <div className="overflow-x-auto">
                         <h5 className="text-xl font-semibold mb-4 text-white">Matriz de Acuerdo de Tarjetas</h5>
-                        <p className="text-gray-400 mb-4 text-sm">El porcentaje indica la frecuencia con la que dos tarjetas se colocaron en la misma categoría.</p>
+                        <div className="bg-gray-700/50 p-4 rounded-lg mb-6 border border-gray-600">
+                            <h6 className="font-semibold text-white flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.333A4.002 4.002 0 0115.333 10a4 4 0 01-5.333 3.667V17a1 1 0 11-2 0v-2.333a4 4 0 01-4-3.667A4.002 4.002 0 016.667 6V3a1 1 0 011-1h2zm1.667 8c0 .92-.746 1.667-1.667 1.667S8.333 10.92 8.333 10s.746-1.667 1.667-1.667S11.667 9.08 11.667 10z" clipRule="evenodd" />
+                                </svg>
+                                ¿Cómo leer esta matriz?
+                            </h6>
+                            <p className="text-gray-300 mt-2 text-sm">
+                                Esta matriz muestra el acuerdo entre los participantes. Para leerla, elige una tarjeta en una fila y otra en una columna. La celda donde se cruzan muestra el porcentaje de participantes que colocaron <strong>ambas tarjetas en la misma categoría</strong>.
+                            </p>
+                            <p className="text-gray-400 mt-1 text-xs">
+                                <span className="font-bold text-indigo-400">Un porcentaje alto (color intenso)</span> significa que la mayoría de los usuarios sienten que esas dos tarjetas pertenecen juntas.
+                            </p>
+                        </div>
                         <table className="w-full border-collapse text-xs text-left">
                             <thead>
                                 <tr>
