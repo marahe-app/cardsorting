@@ -157,10 +157,11 @@ export const CardSortingTest: React.FC<CardSortingTestProps> = ({ task, onSubmit
                     <div id="instructions-content" className="text-text-secondary mt-4 space-y-2 prose prose-invert max-w-none prose-p:my-1 prose-li:my-0">
                          <p>Tu objetivo es organizar las tarjetas en grupos que tengan sentido para ti.</p>
                         <ol>
-                            <li><strong>Selecciona una tarjeta:</strong> Toca cualquier tarjeta para seleccionarla.</li>
-                            <li><strong>Crea categorías:</strong> Usa el campo de texto para crear los grupos que necesites.</li>
-                            <li><strong>Coloca la tarjeta:</strong> Con una tarjeta seleccionada, toca una categoría para moverla a ese grupo.</li>
-                            <li><strong>Finaliza:</strong> Cuando hayas clasificado <strong>todas</strong> las tarjetas, pulsa "Enviar Tarea".</li>
+                            <li><strong>1. Crea categorías:</strong> Usa el campo de texto para crear los grupos que necesites.</li>
+                            <p>Imagina una categoría como el botón que presiones para ir a tal sección o realizar tal acción.</p>
+                            <li><strong>2. Selecciona una tarjeta:</strong> Toca cualquier tarjeta para seleccionarla.</li>
+                            <li><strong>3. Coloca la tarjeta:</strong> Con una tarjeta seleccionada, toca una categoría para moverla a ese grupo.</li>
+                            <li><strong>4. Finaliza:</strong> Cuando hayas clasificado <strong>todas</strong> las tarjetas, pulsa "Enviar Tarea".</li>
                         </ol>
                     </div>
                 )}
