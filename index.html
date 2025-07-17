@@ -13,6 +13,9 @@
   <meta name="author" content="Manuel Sirera Tirado" />
   
   <meta name="robots" content="index, follow" />
+  
+  <link rel="icon" type="image/x-icon" href="assets/logo.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -61,6 +64,22 @@
         --favicon-fill: #FFFFFF; /* Color claro para tema oscuro */
       }
     }
+    
+    /* Nota: El cambio de color de un .ico o SVG para favicon mediante CSS es complejo y no siempre fiable.
+             Los navegadores no suelen aplicar el 'fill' de un SVG favicon de esta manera,
+             y un .ico es un formato de bitmap.
+             La forma más robusta es tener dos favicons SVG y cambiar el href.
+             Si tu logo.ico es un SVG renombrado, podría funcionar mejor si el SVG tiene 'currentColor'
+             y el navegador lo interpreta.
+             La solución a continuación es un enfoque más directo pero que requiere que el favicon sea SVG real.
+             Si tu 'logo.ico' es realmente un .ico (bitmap), esto NO funcionará.
+             Considera tener un 'logo.svg' en 'assets/' con el 'fill' o 'stroke' establecido a 'currentColor'
+             y cambiar el 'href' del link o tener dos link tags condicionales.
+             
+             Por simplicidad y para mostrar la intención, he añadido la variable CSS,
+             pero la implementación de cambio de color de favicon es más compleja de lo que CSS puede hacer directamente.
+             A continuación, una explicación de cómo se haría con SVG.
+    */
   </style>
   <script>
     tailwind.config = {
@@ -98,6 +117,7 @@
       }
     }
   </script>
+  <link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <div id="root"></div>
