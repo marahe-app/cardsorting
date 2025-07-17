@@ -20,5 +20,12 @@
     "lastName": "Rodríguez",
     "role": "user",
     "assignedTasks": []
+  },
+  {
+    "id": "user-key-04",
+    "firstName": "Sara",
+    "lastName": "Otero",
+    "role": "user",
+    "assignedTasks": ["task-01"]
   }
 ]
