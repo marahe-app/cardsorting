@@ -1,6 +1,6 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
-import type { Card, CardSortingTask, CardSortingCategory, CardSortingSubmission } from '../types';
+import React, { useState, useCallback } from 'react';
+import type { Card, CardSortingTask, CardSortingCategory, CardSortingSubmission, Submission } from '../types';
 
 interface CardSortingTestProps {
     task: CardSortingTask;
@@ -12,20 +12,11 @@ export const CardSortingTest: React.FC<CardSortingTestProps> = ({ task, onSubmit
     const [unsortedCards, setUnsortedCards] = useState<Card[]>(task.cards);
     const [categories, setCategories] = useState<CardSortingCategory[]>([]);
     const [newCategoryName, setNewCategoryName] = useState('');
-    const [draggedCard, setDraggedCard] = useState<Card | null>(null);
-    const [dragOverCategory, setDragOverCategory] = useState<string | null>(null);
+    const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
-    // State for inline renaming
     const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
     const [editingCategoryName, setEditingCategoryName] = useState('');
-    
-    // State to manage touch vs. mouse drag
-    const [isTouchDrag, setIsTouchDrag] = useState(false);
-    const [ghost, setGhost] = useState<{ card: Card; x: number; y: number } | null>(null);
-
-    // State for collapsible instructions
     const [isInstructionsOpen, setIsInstructionsOpen] = useState(true);
-
 
     const isSubmitDisabled = unsortedCards.length > 0;
 
@@ -40,7 +31,11 @@ export const CardSortingTest: React.FC<CardSortingTestProps> = ({ task, onSubmit
         const categoryToDelete = categories.find(c => c.id === categoryId);
         if (!categoryToDelete) return;
 
-        setUnsortedCards(prevUnsorted => [...prevUnsorted, ...categoryToDelete.cards]);
+        if (categoryToDelete.cards.some(c => c.id === selectedCard?.id)) {
+            setSelectedCard(null);
+        }
+
+        setUnsortedCards(prevUnsorted => [...prevUnsorted, ...categoryToDelete.cards].sort((a, b) => a.content.localeCompare(b.content)));
         setCategories(prevCategories => prevCategories.filter(c => c.id !== categoryId));
     };
 
@@ -59,332 +54,201 @@ export const CardSortingTest: React.FC<CardSortingTestProps> = ({ task, onSubmit
         setEditingCategoryName('');
     };
 
-    const handleDragStart = (card: Card) => {
-        setDraggedCard(card);
+    const handleCardClick = (clickedCard: Card, source: 'unsorted' | string) => {
+        if (selectedCard?.id === clickedCard.id) {
+            setSelectedCard(null); 
+        } else {
+            setSelectedCard(clickedCard);
+        }
     };
 
-    const handleDragOver = (e: React.DragEvent, categoryId: string) => {
-        e.preventDefault();
-        setDragOverCategory(categoryId);
-    };
+    const handlePlaceCard = useCallback((targetCategoryId: string | 'unsorted') => {
+        if (!selectedCard) return;
 
-    const handleDrop = useCallback((targetId: string | null) => {
-        if (!draggedCard) return;
-
-        // 1. Remove card from its original location (either unsorted or a category)
-        let cardFoundInUnsorted = unsortedCards.some(c => c.id === draggedCard.id);
-        const newUnsorted = unsortedCards.filter(c => c.id !== draggedCard.id);
-        const newCategories = categories.map(cat => ({
+        let newUnsorted = unsortedCards.filter(c => c.id !== selectedCard.id);
+        let newCategories = categories.map(cat => ({
             ...cat,
-            cards: cat.cards.filter(c => c.id !== draggedCard.id)
+            cards: cat.cards.filter(c => c.id !== selectedCard.id)
         }));
-        
-        // 2. Add card to new location
-        if (targetId && targetId !== 'unsorted') {
-            const categoryIndex = newCategories.findIndex(c => c.id === targetId);
+
+        if (targetCategoryId === 'unsorted') {
+            newUnsorted = [...newUnsorted, selectedCard].sort((a,b) => a.content.localeCompare(b.content));
+        } else {
+            const categoryIndex = newCategories.findIndex(c => c.id === targetCategoryId);
             if (categoryIndex > -1) {
-                newCategories[categoryIndex].cards.push(draggedCard);
+                newCategories[categoryIndex].cards.push(selectedCard);
             }
-             setCategories(newCategories);
-             setUnsortedCards(newUnsorted);
-        } else { // Dropped on "unsorted" or nowhere
-             if (!cardFoundInUnsorted) {
-                 setUnsortedCards([draggedCard, ...newUnsorted]);
-             } else {
-                 setUnsortedCards(unsortedCards); // No change if dropped back on unsorted
-             }
-             setCategories(newCategories);
         }
-
-        setDraggedCard(null);
-        setDragOverCategory(null);
-    }, [draggedCard, unsortedCards, categories]);
-
-    // --- Touch handlers for mobile drag-and-drop ---
-    const handleTouchStart = (e: React.TouchEvent, card: Card) => {
-        handleDragStart(card);
-        setIsTouchDrag(true);
-        const touch = e.touches[0];
-        setGhost({ card, x: touch.clientX, y: touch.clientY });
-    };
-    
-    useEffect(() => {
-        const touchMoveHandler = (e: TouchEvent) => {
-            if (!isTouchDrag) return;
-            // This handler is only active during a touch-drag operation.
-            // We prevent default to stop the screen from scrolling.
-            e.preventDefault();
-
-            const touch = e.touches[0];
-            // Move the ghost element
-            setGhost(g => g ? { ...g, x: touch.clientX, y: touch.clientY } : null);
-
-            // Find what's under the finger
-            const elementOver = document.elementFromPoint(touch.clientX, touch.clientY);
-            const dropTarget = elementOver?.closest('[data-droptarget-id]');
-            const targetId = dropTarget ? dropTarget.getAttribute('data-droptarget-id') : null;
-            
-            // Update the visual feedback for which category is being hovered over
-            setDragOverCategory(targetId);
-        };
-
-        const touchEndHandler = () => {
-            if (!isTouchDrag) return;
-            // Use the latest dragOverCategory from state to perform the drop
-            handleDrop(dragOverCategory);
-            // Cleanup
-            setIsTouchDrag(false);
-            setGhost(null);
-        };
-
-        // We only add the listeners to the document when a touch drag is active.
-        if (isTouchDrag) {
-            document.addEventListener('touchmove', touchMoveHandler, { passive: false });
-            document.addEventListener('touchend', touchEndHandler);
-            document.addEventListener('touchcancel', touchEndHandler);
-        }
-
-        return () => {
-            // Cleanup: remove the listeners when the component unmounts or the effect re-runs.
-            document.removeEventListener('touchmove', touchMoveHandler);
-            document.removeEventListener('touchend', touchEndHandler);
-            document.removeEventListener('touchcancel', touchEndHandler);
-        };
-    }, [isTouchDrag, dragOverCategory, handleDrop]);
+        
+        setUnsortedCards(newUnsorted);
+        setCategories(newCategories);
+        setSelectedCard(null);
+    }, [selectedCard, unsortedCards, categories]);
 
 
     const handleSubmit = () => {
         if (isSubmitDisabled) return;
         
         const submission: Omit<CardSortingSubmission, 'id' | 'userId' | 'completedAt'> = {
+            type: 'card_sorting',
             taskId: task.id,
             results: categories.filter(c => c.cards.length > 0 && c.name.trim() !== ''),
         };
         onSubmit(submission);
     };
-
-    const UnsortedCardsColumn = () => (
-        <div
-            data-droptarget-id="unsorted"
-            onDragOver={(e) => handleDragOver(e, 'unsorted')}
-            onDrop={() => handleDrop('unsorted')}
-            onDragLeave={() => setDragOverCategory(null)}
-            className={`bg-card-bg/50 p-4 rounded-xl transition-all h-full ${dragOverCategory === 'unsorted' ? 'bg-interactive/20 ring-2 ring-interactive' : ''}`}
+    
+    const renderCard = (card: Card, source: 'unsorted' | string) => (
+         <div 
+            key={card.id}
+            onClick={() => handleCardClick(card, source)}
+            className={`bg-card-bg p-3 rounded-md cursor-pointer shadow-md text-text-primary w-full transition-all duration-200 ${selectedCard?.id === card.id ? 'ring-2 ring-offset-2 ring-offset-card-bg/50 ring-interactive' : 'hover:bg-main-bg'}`}
         >
-            <h2 className="text-xl font-semibold text-text-primary mb-3 sticky top-0 bg-card-bg/50 py-2">Tarjetas sin Clasificar ({unsortedCards.length})</h2>
-            <div className="space-y-3 lg:max-h-[65vh] lg:overflow-y-auto">
-                {/* Mobile: Horizontal scroll */}
-                <div className="lg:hidden flex flex-nowrap items-center gap-4 overflow-x-auto min-h-[100px] p-2">
-                    {unsortedCards.map(card => {
-                         const isDraggingThisCard = draggedCard?.id === card.id;
-                        return (
-                             <div 
-                                key={card.id} 
-                                draggable 
-                                onDragStart={() => { setIsTouchDrag(false); handleDragStart(card); }}
-                                onTouchStart={(e) => handleTouchStart(e, card)}
-                                className={`bg-card-bg p-3 rounded-md cursor-grab active:cursor-grabbing shadow-md text-text-primary w-48 flex-shrink-0 transition-opacity ${isDraggingThisCard && isTouchDrag ? 'opacity-30' : 'opacity-100'}`}
-                            >
-                                {card.content}
-                            </div>
-                        )
-                    })}
-                </div>
-                 {/* Desktop: Vertical list */}
-                <div className="hidden lg:flex lg:flex-col lg:gap-3">
-                    {unsortedCards.map(card => {
-                        const isDraggingThisCard = draggedCard?.id === card.id;
-                        return (
-                            <div 
-                                key={card.id} 
-                                draggable 
-                                onDragStart={() => { setIsTouchDrag(false); handleDragStart(card); }}
-                                onTouchStart={(e) => handleTouchStart(e, card)}
-                                className={`bg-card-bg p-3 rounded-md cursor-grab active:cursor-grabbing shadow-md text-text-primary w-full transition-opacity ${isDraggingThisCard && isTouchDrag ? 'opacity-30' : 'opacity-100'}`}
-                            >
-                                {card.content}
-                            </div>
-                        )
-                    })}
-                </div>
-
-                {unsortedCards.length === 0 && (
-                    <div className="w-full flex-grow flex items-center justify-center text-text-secondary p-4">
-                        ¡Todas las tarjetas han sido clasificadas!
-                    </div>
-                )}
-            </div>
+            {card.content}
         </div>
     );
-    
+
     return (
-        <div className="container mx-auto max-w-7xl py-10 px-4 space-y-8">
-            {/* Ghost element for touch drag */}
-            {ghost && (
-              <div 
-                style={{
-                  position: 'fixed',
-                  top: ghost.y,
-                  left: ghost.x,
-                  transform: 'translate(-50%, -50%)',
-                  pointerEvents: 'none',
-                  zIndex: 9999,
-                }}
-                className="bg-interactive p-3 rounded-md shadow-2xl text-white w-48 ring-2 ring-white/50"
-              >
-                {ghost.card.content}
-              </div>
-            )}
-            <div className="flex justify-between items-center">
-                <button onClick={onBack} className="bg-card-bg hover:brightness-125 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                    &larr; Volver al Panel
-                </button>
-                 <div title={isSubmitDisabled ? "Debes clasificar todas las tarjetas para poder enviar la tarea." : ''}>
-                    <button 
-                        onClick={handleSubmit} 
-                        disabled={isSubmitDisabled}
-                        className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:bg-green-700"
+        <div className="container mx-auto max-w-7xl py-10 px-4 space-y-8 pb-32 sm:pb-24">
+            {selectedCard && (
+                 <div className="fixed bottom-0 left-0 right-0 bg-card-bg p-4 shadow-2xl border-t-2 border-interactive z-50 flex items-center justify-between gap-4 animate-slide-up">
+                    <div>
+                        <p className="text-text-secondary text-sm">Tarjeta Seleccionada:</p>
+                        <p className="font-bold text-text-primary text-lg">{selectedCard.content}</p>
+                    </div>
+                    <button
+                        onClick={() => setSelectedCard(null)}
+                        className="bg-main-bg hover:brightness-125 text-text-primary font-bold py-2 px-3 rounded-lg transition-colors flex items-center gap-2"
+                        title="Cancelar selección"
                     >
-                        Enviar Tarea
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span className="hidden sm:inline">Cancelar</span>
                     </button>
                 </div>
+            )}
+            
+            <div className="flex justify-between items-center">
+                <button onClick={onBack} className="bg-card-bg hover:brightness-125 text-text-primary font-bold py-2 px-4 rounded-lg transition-colors">
+                    &larr; Volver al Panel
+                </button>
             </div>
             <header className="bg-card-bg p-6 rounded-xl shadow-lg">
                 <h1 className="text-3xl font-bold text-text-primary">{task.title}</h1>
                 <p className="mt-2 text-text-secondary">{task.description}</p>
             </header>
-
-            {/* Instructions */}
-            <div className="bg-card-bg/50 p-5 rounded-lg border border-text-secondary/20">
+             <div className="bg-card-bg/50 p-5 rounded-lg border border-text-secondary/20">
                 <button
                     onClick={() => setIsInstructionsOpen(!isInstructionsOpen)}
-                    className="w-full flex justify-between items-center text-left"
+                    className="w-full flex justify-between items-center text-left text-text-primary"
                     aria-expanded={isInstructionsOpen}
                     aria-controls="instructions-content"
                 >
-                    <h3 className="text-xl font-semibold text-text-primary">Instrucciones Detalladas</h3>
+                    <h3 className="text-xl font-semibold">Instrucciones</h3>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         className={`h-6 w-6 text-text-secondary transition-transform transform ${isInstructionsOpen ? 'rotate-180' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        aria-hidden="true"
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
                     >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
                 {isInstructionsOpen && (
-                    <div id="instructions-content" className="text-text-secondary mt-4 space-y-2">
-                        <p>Tu objetivo es organizar las tarjetas en grupos que tengan sentido para ti. A estos grupos los llamamos "categorías".</p>
-                        <ol className="list-decimal list-inside space-y-1 pl-2">
-                            <li><strong>Crea categorías:</strong> Usa el campo "Escribe un nombre..." para crearlas. Piensa en una categoría como la palabra que leas en el botón que te permita acceder al contenido de las tarjetas</li>
-                            <li><strong>Arrastra las tarjetas:</strong> Mueve las tarjetas desde el panel "Tarjetas sin Clasificar" a las categorías que creaste.</li>
-                            <li><strong>Organiza a tu gusto:</strong> Puedes mover tarjetas entre categorías, cambiarles el nombre o eliminarlas.</li>
-                            <li><strong>Finaliza la tarea:</strong> Cuando hayas clasificado <strong>todas</strong> las tarjetas, pulsa "Enviar Tarea".</li>
+                    <div id="instructions-content" className="text-text-secondary mt-4 space-y-2 prose prose-invert max-w-none prose-p:my-1 prose-li:my-0">
+                         <p>Tu objetivo es organizar las tarjetas en grupos que tengan sentido para ti.</p>
+                        <ol>
+                            <li><strong>Selecciona una tarjeta:</strong> Toca cualquier tarjeta para seleccionarla.</li>
+                            <li><strong>Crea categorías:</strong> Usa el campo de texto para crear los grupos que necesites.</li>
+                            <li><strong>Coloca la tarjeta:</strong> Con una tarjeta seleccionada, toca una categoría para moverla a ese grupo.</li>
+                            <li><strong>Finaliza:</strong> Cuando hayas clasificado <strong>todas</strong> las tarjetas, pulsa "Enviar Tarea".</li>
                         </ol>
-                        <p className="pt-2 italic">¡Gracias por tu ayuda! Tu organización nos dará información muy valiosa.</p>
                     </div>
                 )}
             </div>
 
-            {/* Main Content Area: Two-column layout on large screens */}
             <div className="grid grid-cols-1 lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
-                
-                {/* Left Column (Unsorted Cards) - visible on top on mobile */}
-                <div className="lg:col-span-1">
-                    <UnsortedCardsColumn />
+                <div className="lg:col-span-1 bg-card-bg/50 p-4 rounded-xl relative">
+                    <h2 className="text-xl font-semibold text-text-primary mb-3 sticky top-0 bg-card-bg/50 py-2">Tarjetas sin Clasificar ({unsortedCards.length})</h2>
+                    <div className="space-y-3 lg:max-h-[65vh] overflow-y-auto pr-2">
+                        {selectedCard && unsortedCards.length === 0 && (
+                            <div className="absolute inset-4 border-2 border-dashed border-interactive rounded-xl flex items-center justify-center cursor-pointer hover:bg-interactive/10" onClick={() => handlePlaceCard('unsorted')}>
+                                <span className="font-bold text-interactive">Colocar aquí</span>
+                            </div>
+                        )}
+                        {unsortedCards.length > 0 ? unsortedCards.map(c => renderCard(c, 'unsorted')) : <p className="text-text-secondary text-center py-8">¡Todo clasificado!</p>}
+                    </div>
                 </div>
                 
-                {/* Right Column (Categories) */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <input 
                             type="text" 
                             value={newCategoryName} 
                             onChange={e => setNewCategoryName(e.target.value)} 
                             onKeyPress={e => e.key === 'Enter' && handleAddCategory()}
                             placeholder="Escribe un nombre de categoría..." 
-                            className="flex-grow p-3 bg-main-bg rounded-md border border-text-secondary/50 focus:ring-interactive focus:border-interactive"
+                            className="flex-grow p-3 bg-main-bg text-text-primary rounded-md border border-text-secondary/50 focus:ring-interactive focus:border-interactive"
                         />
-                        <button onClick={handleAddCategory} className="px-4 py-2 bg-interactive hover:bg-interactive-darker rounded-md font-semibold transition-colors">Añadir Categoría</button>
+                        <button onClick={handleAddCategory} className="px-4 py-3 sm:py-2 bg-interactive hover:bg-interactive-darker text-text-primary rounded-md font-semibold transition-colors">Añadir Categoría</button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {categories.map(category => (
-                            <div 
-                                key={category.id} 
-                                data-droptarget-id={category.id}
-                                className={`bg-card-bg bg-opacity-70 p-4 rounded-xl space-y-3 transition-all ${dragOverCategory === category.id ? 'bg-interactive/20 ring-2 ring-interactive' : ''}`}
-                                onDragOver={(e) => handleDragOver(e, category.id)}
-                                onDrop={() => handleDrop(category.id)}
-                                onDragLeave={() => setDragOverCategory(null)}
-                            >
-                                <div className="flex justify-between items-center gap-2">
-                                     {editingCategoryId === category.id ? (
-                                        <input
-                                            type="text"
-                                            value={editingCategoryName}
-                                            onChange={e => setEditingCategoryName(e.target.value)}
-                                            onBlur={handleConfirmRename}
-                                            onKeyPress={e => e.key === 'Enter' && handleConfirmRename()}
-                                            className="flex-grow p-1 bg-main-bg rounded-md border border-interactive focus:ring-interactive focus:border-interactive text-lg text-interactive w-full"
-                                            autoFocus
-                                        />
-                                    ) : (
-                                        <h3 className="text-lg font-bold text-interactive flex-grow truncate" title={category.name}>{category.name}</h3>
-                                    )}
-                                    <div className="flex-shrink-0 flex items-center">
-                                        <button 
-                                            onClick={() => editingCategoryId === category.id ? handleConfirmRename() : handleStartRename(category)}
-                                            title={editingCategoryId === category.id ? "Confirmar nombre" : "Renombrar categoría"}
-                                            className="text-text-secondary hover:text-interactive p-1 rounded-full transition-colors"
-                                        >
-                                           {editingCategoryId === category.id ? (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                                </svg>
-                                           ) : (
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                                </svg>
-                                           )}
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDeleteCategory(category.id)}
-                                            title="Eliminar categoría"
-                                            className="flex-shrink-0 text-text-secondary hover:text-red-400 p-1 rounded-full transition-colors"
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
+                            <div key={category.id} className="bg-card-bg/70 rounded-xl flex flex-col">
+                                <div className="p-4 border-b border-main-bg">
+                                    <div className="flex justify-between items-center gap-2">
+                                        {editingCategoryId === category.id ? (
+                                            <input
+                                                type="text" value={editingCategoryName}
+                                                onChange={e => setEditingCategoryName(e.target.value)}
+                                                onBlur={handleConfirmRename} onKeyPress={e => e.key === 'Enter' && handleConfirmRename()}
+                                                className="flex-grow p-1 bg-main-bg rounded-md border border-interactive text-lg text-text-primary w-full" autoFocus
+                                            />
+                                        ) : (
+                                            <h3 className="text-lg font-bold text-interactive flex-grow truncate cursor-pointer" onClick={() => handleStartRename(category)} title={category.name}>{category.name}</h3>
+                                        )}
+                                        <div className="flex-shrink-0 flex items-center">
+                                            <button onClick={() => editingCategoryId === category.id ? handleConfirmRename() : handleStartRename(category)} title={editingCategoryId === category.id ? "Confirmar" : "Renombrar"} className="text-text-secondary hover:text-interactive p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg></button>
+                                            <button onClick={() => handleDeleteCategory(category.id)} title="Eliminar" className="text-text-secondary hover:text-red-400 p-1 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clipRule="evenodd" /></svg></button>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="p-2 space-y-2 min-h-[150px] bg-main-bg/30 rounded-lg">
-                                    {category.cards.map(card => {
-                                         const isDraggingThisCard = draggedCard?.id === card.id;
-                                         return (
-                                             <div 
-                                                 key={card.id} 
-                                                 draggable 
-                                                 onDragStart={() => { setIsTouchDrag(false); handleDragStart(card); }} 
-                                                 onTouchStart={(e) => handleTouchStart(e, card)}
-                                                 className={`bg-card-bg p-3 rounded-md cursor-grab active:cursor-grabbing shadow-md text-text-primary transition-opacity ${isDraggingThisCard && isTouchDrag ? 'opacity-30' : 'opacity-100'}`}
-                                             >
-                                                 {card.content}
-                                             </div>
-                                         );
-                                    })}
+                                <div onClick={() => selectedCard && handlePlaceCard(category.id)} className={`p-4 space-y-2 min-h-[150px] bg-main-bg/30 rounded-b-lg flex-grow relative ${selectedCard ? 'cursor-pointer' : ''}`}>
+                                    {selectedCard && (
+                                        <div className="absolute inset-0 bg-interactive/10 flex items-center justify-center rounded-b-xl z-10 border-2 border-dashed border-interactive hover:bg-interactive/20">
+                                            <span className="font-bold text-white bg-interactive px-3 py-1 rounded-md shadow-lg text-sm">Colocar aquí</span>
+                                        </div>
+                                    )}
+                                    <div className={`space-y-2 transition-opacity ${selectedCard ? 'opacity-50' : ''}`}>
+                                        {category.cards.length > 0 ? category.cards.map(c => renderCard(c, category.id)) : <p className="text-text-secondary text-center pt-8 text-sm">Vacío</p>}
+                                    </div>
                                 </div>
                             </div>
                         ))}
                          {categories.length === 0 && (
                             <div className="md:col-span-2 flex items-center justify-center text-center p-10 bg-card-bg/50 rounded-xl border-2 border-dashed border-text-secondary/30">
-                                <p className="text-text-secondary">Crea tu primera categoría para empezar a organizar las tarjetas.</p>
+                                <p className="text-text-secondary">Crea tu primera categoría para empezar a organizar.</p>
                             </div>
                         )}
                     </div>
+                </div>
+            </div>
+
+            <div className="fixed bottom-0 left-0 right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-4 z-40 w-full sm:w-auto">
+                 <div className="bg-card-bg/80 backdrop-blur-sm p-2 sm:rounded-xl border-t sm:border border-text-secondary/20 flex flex-col-reverse sm:flex-row items-center justify-end gap-4">
+                    {isSubmitDisabled && (
+                        <p className="text-text-secondary text-xs italic text-center sm:text-right px-4">
+                            Debes clasificar todas las tarjetas para poder enviar la tarea.
+                        </p>
+                    )}
+                    <button
+                        onClick={handleSubmit}
+                        disabled={isSubmitDisabled}
+                        className="w-full sm:w-auto bg-green-600 text-white font-bold py-3 px-8 rounded-lg text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:bg-green-700"
+                        title={isSubmitDisabled ? "Debes clasificar todas las tarjetas." : 'Enviar resultados'}
+                    >
+                        Enviar Tarea
+                    </button>
                 </div>
             </div>
         </div>

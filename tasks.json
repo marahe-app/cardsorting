@@ -2,6 +2,7 @@
 [
   {
     "id": "task-01",
+    "type": "card_sorting",
     "title": "#1 Organización de Módulos para CRM Inmobiliario",
     "description": "Eres un agente inmobiliario. Ayúdanos a diseñar nuestro nuevo CRM interno agrupando las siguientes funcionalidades en categorías lógicas que simplifiquen tu día a día.",
     "createdBy": "admin-key-01",
@@ -21,6 +22,41 @@
       { "id": "crm-13", "content": "Mensajes del Equipo" },
       { "id": "crm-14", "content": "Análisis de Precios de Zona" }
     ]
+  },
+  {
+    "id": "task-02",
+    "type": "alternatives",
+    "title": "#2 Encuesta de Satisfacción de la Interfaz",
+    "description": "Por favor, responde a las siguientes preguntas para ayudarnos a mejorar tu experiencia con nuestra nueva plataforma.",
+    "createdBy": "admin-key-01",
+    "questions": [
+      {
+        "id": "q1",
+        "text": "¿Qué tan fácil te resultó encontrar la información que buscabas?",
+        "alternatives": [
+          { "id": "q1-a1", "text": "Muy fácil" },
+          { "id": "q1-a2", "text": "Aceptable" },
+          { "id": "q1-a3", "text": "Difícil" }
+        ]
+      },
+      {
+        "id": "q2",
+        "text": "¿Cuál de estas paletas de colores prefieres para la aplicación?",
+        "alternatives": [
+          { "id": "q2-a1", "text": "Tema oscuro (actual)" },
+          { "id": "q2-a2", "text": "Tema claro" },
+          { "id": "q2-a3", "text": "Un tema de alto contraste" }
+        ]
+      },
+      {
+        "id": "q3",
+        "text": "En una escala del 1 al 3, ¿qué tan probable es que recomiendes esta herramienta a un colega?",
+        "alternatives": [
+          { "id": "q3-a1", "text": "Muy probable" },
+          { "id": "q3-a2", "text": "Neutral" },
+          { "id": "q3-a3", "text": "Poco probable" }
+        ]
+      }
+    ]
   }
- 
 ]

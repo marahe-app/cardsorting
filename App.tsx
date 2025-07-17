@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import type { User, CardSortingTask, CardSortingSubmission } from './types';
+import type { User, Task, Submission, CardSortingSubmission, AlternativesSubmission } from './types';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
 import { CardSortingTest } from './components/CardSortingTest';
+import { AlternativesTest } from './components/AlternativesTest';
 import { AdminPanel } from './components/AdminPanel';
 import { SUBMISSIONS_KEY, INITIAL_SUBMISSIONS, CURRENT_USER_KEY } from './constants';
 
@@ -12,22 +13,32 @@ import usersData from './users.json';
 import tasksData from './tasks.json';
 
 type View = 'loading' | 'login' | 'dashboard' | 'card_sorting' | 'admin_panel' | 'error';
+type Theme = 'light' | 'dark';
 
 const App: React.FC = () => {
     // Static data is now initialized directly from imports
     const [users, setUsers] = useState<User[]>(usersData);
-    const [tasks, setTasks] = useState<CardSortingTask[]>(tasksData);
+    const [tasks, setTasks] = useState<Task[]>(tasksData);
     
     // Dynamic data from localStorage
-    const [submissions, setSubmissions] = useState<CardSortingSubmission[]>([]);
+    const [submissions, setSubmissions] = useState<Submission[]>([]);
 
     // App state
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [currentView, setCurrentView] = useState<View>('loading');
     const [activeTask, setActiveTask] = useState<CardSortingTask | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'dark');
 
-
+    // Effect for handling theme changes
+    useEffect(() => {
+        if (theme === 'light') {
+            document.documentElement.classList.add('light');
+        } else {
+            document.documentElement.classList.remove('light');
+        }
+        localStorage.setItem('theme', theme);
+    }, [theme]);
     // Load dynamic state from localStorage on initial mount
     useEffect(() => {
         try {
@@ -55,6 +66,11 @@ const App: React.FC = () => {
         }
     }, []);
 
+     const toggleTheme = () => {
+        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+    };
+
+
     const handleLogin = (user: User) => {
         setCurrentUser(user);
         localStorage.setItem(CURRENT_USER_KEY, user.id);
@@ -68,9 +84,9 @@ const App: React.FC = () => {
         setCurrentView('login');
     };
 
-    const handleSelectTask = (task: CardSortingTask) => {
+    const handleSelectTask = (task: Task) => {
         setActiveTask(task);
-        setCurrentView('card_sorting');
+        setCurrentView('task');
     };
 
     const handleShowAdminPanel = () => {
@@ -84,29 +100,26 @@ const App: React.FC = () => {
         setCurrentView('dashboard');
     };
 
-    const handleTaskSubmit = async (submissionData: Omit<CardSortingSubmission, 'id' | 'userId' | 'completedAt'>) => {
+    const handleTaskSubmit = async (submissionData: Omit<CardSortingSubmission, 'id' | 'userId' | 'completedAt'> | Omit<AlternativesSubmission, 'id' | 'userId' | 'completedAt'>) => {
         if (!currentUser) return;
 
-        const newSubmission: CardSortingSubmission = {
+        const newSubmission: Submission = {
             ...submissionData,
             id: `sub-${Date.now()}`,
             userId: currentUser.id,
             completedAt: new Date().toISOString(),
         };
 
-        // 1. Update state and localStorage immediately for instant UI feedback and data persistence.
         const updatedSubmissions = [...submissions, newSubmission];
         setSubmissions(updatedSubmissions);
         localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(updatedSubmissions));
         
-        // 2. Attempt to send data to the backend and provide user feedback.
         try {
             const response = await fetch('https://marahe-backend.onrender.com/uxui/sendUXUItask', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                 // The backend expects a list of submissions.
                 body: JSON.stringify([newSubmission]),
             });
 
@@ -122,7 +135,6 @@ const App: React.FC = () => {
             console.error('Error al enviar los resultados de la tarea al backend:', error);
             alert('Tarea guardada localmente. Hubo un error al enviar tus resultados al servidor. Tu progreso se ha guardado en este dispositivo, pero es posible que el administrador no lo vea.');
         } finally {
-            // 3. Navigate back to the dashboard regardless of the API call result.
             handleBackToPanel();
         }
     };
@@ -152,13 +164,22 @@ const App: React.FC = () => {
                     onSelectTask={handleSelectTask}
                     onShowAdminPanel={handleShowAdminPanel}
                     onLogout={handleLogout}
+                    theme={theme}
+                    toggleTheme={toggleTheme}
                 />;
-            case 'card_sorting':
+            case 'task':
                 if (!activeTask) {
                     handleBackToPanel();
                     return null;
                 }
-                return <CardSortingTest task={activeTask} onSubmit={handleTaskSubmit} onBack={handleBackToPanel} />;
+                if (activeTask.type === 'card_sorting') {
+                    return <CardSortingTest task={activeTask} onSubmit={handleTaskSubmit} onBack={handleBackToPanel} />;
+                }
+                 if (activeTask.type === 'alternatives') {
+                    return <AlternativesTest task={activeTask} onSubmit={handleTaskSubmit} onBack={handleBackToPanel} />;
+                }
+                handleBackToPanel();
+                return null;
             case 'admin_panel':
                  if (!currentUser) return <Login onLogin={handleLogin} users={users} />;
                 return <AdminPanel
