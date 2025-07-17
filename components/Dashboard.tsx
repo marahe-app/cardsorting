@@ -1,6 +1,7 @@
 
 import React, { useMemo } from 'react';
 import type { User, CardSortingTask, CardSortingSubmission } from '../types';
+import Logo from '../assets/logo.svg'; // Adjust path based on your actual file location
 
 interface DashboardProps {
   user: User;
@@ -49,7 +50,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, tasks, submissions, 
         <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <img src="../assets/logo.svg" alt="UX-Sort Logo" className="h-8 w-auto" />
+              <img src={logo}alt="UX-Sort Logo" className="h-8 w-auto" />
               <span className="font-bold text-2xl text-text-primary ml-3">LCG UX Platform</span>
             </div>
             <div className="flex items-center gap-4">
