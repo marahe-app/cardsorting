@@ -22,11 +22,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-md p-8 space-y-8 bg-gray-800 rounded-2xl shadow-2xl">
+    <div className="min-h-screen bg-main-bg flex items-center justify-center p-4">
+      <div className="w-full max-w-md p-8 space-y-8 bg-card-bg rounded-2xl shadow-2xl">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white tracking-tight">UX-Sort</h1>
-          <p className="mt-2 text-gray-400">Ingresa tu clave de acceso única para comenzar.</p>
+          <img src="assets/logo.svg" alt="LCG UX Platform Logo" className="mx-auto h-20 w-auto mb-4" />
+          <h1 className="text-4xl font-bold text-text-primary tracking-tight">LCG UX Platform</h1>
+          <p className="mt-2 text-text-secondary">Ingresa tu clave de acceso única para comenzar.</p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="rounded-md shadow-sm -space-y-px">
@@ -40,7 +41,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-md relative block w-full px-4 py-3 bg-gray-700 border border-gray-600 placeholder-gray-400 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg"
+                className="appearance-none rounded-md relative block w-full px-4 py-3 bg-main-bg border border-text-secondary/50 placeholder-text-secondary text-text-primary focus:outline-none focus:ring-2 focus:ring-interactive focus:border-interactive text-lg"
                 placeholder="Clave de Acceso"
                 value={key}
                 onChange={(e) => {
@@ -56,7 +57,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500 transition-colors duration-200"
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-lg font-medium rounded-md text-primary-action-text bg-primary-action-bg hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-main-bg focus:ring-interactive transition-colors duration-200"
             >
               Iniciar Sesión
             </button>

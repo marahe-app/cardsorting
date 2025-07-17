@@ -2,7 +2,7 @@
 [
   {
     "id": "task-01",
-    "title": "Organización de Módulos para CRM Inmobiliario",
+    "title": "#1 Organización de Módulos para CRM Inmobiliario",
     "description": "Eres un agente inmobiliario. Ayúdanos a diseñar nuestro nuevo CRM interno agrupando las siguientes funcionalidades en categorías lógicas que simplifiquen tu día a día.",
     "createdBy": "admin-key-01",
     "cards": [
@@ -21,25 +21,6 @@
       { "id": "crm-13", "content": "Mensajes del Equipo" },
       { "id": "crm-14", "content": "Análisis de Precios de Zona" }
     ]
-  },
-  {
-    "id": "task-02",
-    "title": "Diseño del Portal para Clientes",
-    "description": "Eres un cliente buscando una propiedad. Organiza las siguientes características en un portal de cliente para que tu experiencia sea lo más sencilla y útil posible.",
-    "createdBy": "admin-key-01",
-    "cards": [
-      { "id": "portal-1", "content": "Mis Propiedades Guardadas" },
-      { "id": "portal-2", "content": "Alertas de Nuevas Propiedades" },
-      { "id": "portal-3", "content": "Estado de mi Oferta" },
-      { "id": "portal-4", "content": "Mensajes con mi Agente" },
-      { "id": "portal-5", "content": "Visitas Programadas" },
-      { "id": "portal-6", "content": "Documentos para la Firma" },
-      { "id": "portal-7", "content": "Calculadora de Hipoteca" },
-      { "id": "portal-8", "content": "Historial de Búsqueda" },
-      { "id": "portal-9", "content": "Perfil y Preferencias" },
-      { "id": "portal-10", "content": "Guía del Comprador" },
-      { "id": "portal-11", "content": "Recomendaciones Personalizadas" },
-      { "id": "portal-12", "content": "Soporte y Ayuda" }
-    ]
   }
+ 
 ]

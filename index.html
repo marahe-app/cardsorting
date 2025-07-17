@@ -1,31 +1,127 @@
-
 <!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UX-Sort: Clasificación de Tarjetas y Análisis</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      body {
-        background-color: #111827;
-        color: #f3f4f6;
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>LCG UX Platform | Soluciones de Experiencia de Usuario e Interfaz</title>
+  
+  <meta name="description" content="Descubre LCG UX Platform, tu solución integral para el diseño de experiencia de usuario (UX) e interfaz de usuario (UI). Optimiza tus productos digitales con nuestras herramientas y recursos." />
+  
+  <meta name="keywords" content="UX, UI, plataforma UX, diseño de experiencia de usuario, diseño de interfaz de usuario, LCG Platform" />
+  
+  <meta name="author" content="LCG UX Platform Team" />
+  
+  <meta name="robots" content="index, follow" />
+  
+  <link rel="canonical" href="https://www.tu-dominio.com/" /> 
+  <link rel="icon" type="image/x-icon" href="assets/logo.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png"> 
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Definición de fuentes */
+    @font-face {
+      font-family: 'Futura';
+      src: url('assets/fonts/Futura_light-Z6e4XjZS.ttf') format('truetype');
+      font-weight: 300;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Futura';
+      src: url('assets/fonts/FuturaStd-Book-C8SErApZ.otf') format('opentype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Futura';
+      src: url('assets/fonts/FuturaStd-Medium-BW5KYxKr.otf') format('opentype');
+      font-weight: 500;
+      font-style: normal;
+    }
+
+    /* Variables CSS para el tema */
+    :root {
+      --main-bg: #0F0F38;
+      --card-bg: #1C1C52;
+      --text-primary: #FFFFFF;
+      --text-secondary: #8B8B99;
+      --primary-action-bg: #FFFFFF;
+      --primary-action-text: #0C1036;
+      --interactive: #A755F7;
+      --interactive-darker: #7c2fce;
+    }
+
+    /* Adaptación del color del favicon según el tema del sistema */
+    /* Para tema claro */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --favicon-fill: #0F0F38; /* Color oscuro para tema claro */
       }
-    </style>
+    }
+    /* Para tema oscuro */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --favicon-fill: #FFFFFF; /* Color claro para tema oscuro */
+      }
+    }
+    
+    /* Nota: El cambio de color de un .ico o SVG para favicon mediante CSS es complejo y no siempre fiable.
+             Los navegadores no suelen aplicar el 'fill' de un SVG favicon de esta manera,
+             y un .ico es un formato de bitmap.
+             La forma más robusta es tener dos favicons SVG y cambiar el href.
+             Si tu logo.ico es un SVG renombrado, podría funcionar mejor si el SVG tiene 'currentColor'
+             y el navegador lo interpreta.
+             La solución a continuación es un enfoque más directo pero que requiere que el favicon sea SVG real.
+             Si tu 'logo.ico' es realmente un .ico (bitmap), esto NO funcionará.
+             Considera tener un 'logo.svg' en 'assets/' con el 'fill' o 'stroke' establecido a 'currentColor'
+             y cambiar el 'href' del link o tener dos link tags condicionales.
+             
+             Por simplicidad y para mostrar la intención, he añadido la variable CSS,
+             pero la implementación de cambio de color de favicon es más compleja de lo que CSS puede hacer directamente.
+             A continuación, una explicación de cómo se haría con SVG.
+    */
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Futura"', 'sans-serif'],
+          },
+          colors: {
+            'main-bg': 'var(--main-bg)',
+            'card-bg': 'var(--card-bg)',
+            'text-primary': 'var(--text-primary)',
+            'text-secondary': 'var(--text-secondary)',
+            'primary-action': {
+              'bg': 'var(--primary-action-bg)',
+              'text': 'var(--primary-action-text)',
+            },
+            'interactive': 'var(--interactive)',
+            'interactive-darker': 'var(--interactive-darker)',
+          },
+          letterSpacing: {
+            'tight': '0em', // Tu personalización para tracking-tight
+          }
+        }
+      }
+    }
+  </script>
   <script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.7.0",
-    "react": "https://esm.sh/react@^19.1.0",
-    "react/": "https://esm.sh/react@^19.1.0/",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.0/"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+    {
+      "imports": {
+        "@google/genai": "https://esm.sh/@google/genai@^1.7.0",
+        "react": "https://esm.sh/react@^19.1.0",
+        "react/": "https://esm.sh/react@^19.1.0/",
+        "react-dom/": "https://esm.sh/react-dom@^19.1.0/"
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>

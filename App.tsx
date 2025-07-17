@@ -7,16 +7,14 @@ import { CardSortingTest } from './components/CardSortingTest';
 import { AdminPanel } from './components/AdminPanel';
 import { SUBMISSIONS_KEY, INITIAL_SUBMISSIONS, CURRENT_USER_KEY } from './constants';
 
-// Import JSON data directly. This makes them part of the build process.
-import usersData from './users.json';
-import tasksData from './tasks.json';
+// JSON data is no longer imported directly. It will be fetched.
 
 type View = 'loading' | 'login' | 'dashboard' | 'card_sorting' | 'admin_panel' | 'error';
 
 const App: React.FC = () => {
-    // Static data is now initialized directly from imports
-    const [users, setUsers] = useState<User[]>(usersData);
-    const [tasks, setTasks] = useState<CardSortingTask[]>(tasksData);
+    // Static data will be loaded via fetch
+    const [users, setUsers] = useState<User[]>([]);
+    const [tasks, setTasks] = useState<CardSortingTask[]>([]);
     
     // Dynamic data from localStorage
     const [submissions, setSubmissions] = useState<CardSortingSubmission[]>([]);
@@ -28,32 +26,54 @@ const App: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
 
-    // Load dynamic state from localStorage on initial mount
+    // Load all initial data (static JSON and dynamic localStorage) on mount
     useEffect(() => {
-        try {
-            // Load dynamic submissions from localStorage
-            const savedSubmissions = localStorage.getItem(SUBMISSIONS_KEY);
-            setSubmissions(savedSubmissions ? JSON.parse(savedSubmissions) : INITIAL_SUBMISSIONS);
-            
-            // Check for a logged-in user in localStorage
-            const savedUserKey = localStorage.getItem(CURRENT_USER_KEY);
-            if (savedUserKey) {
-                // usersData is available directly from the import
-                const savedUser = usersData.find(u => u.id === savedUserKey);
-                if (savedUser) {
-                    setCurrentUser(savedUser);
-                    setCurrentView('dashboard');
-                    return; // Exit early if user is found
-                }
-            }
+        const loadInitialData = async () => {
+            try {
+                // 1. Fetch static data (users and tasks) from JSON files
+                const [usersResponse, tasksResponse] = await Promise.all([
+                    fetch('./users.json'),
+                    fetch('./tasks.json')
+                ]);
 
-            setCurrentView('login');
-        } catch (err: any) {
-            console.error("Error al cargar los datos guardados de la aplicación:", err);
-            setError(err.message || 'Ocurrió un error inesperado. Revisa la consola para más detalles.');
-            setCurrentView('error');
-        }
-    }, []);
+                if (!usersResponse.ok || !tasksResponse.ok) {
+                    throw new Error('No se pudieron cargar los datos iniciales de la aplicación (users.json o tasks.json).');
+                }
+
+                const usersData: User[] = await usersResponse.json();
+                const tasksData: CardSortingTask[] = await tasksResponse.json();
+
+                setUsers(usersData);
+                setTasks(tasksData);
+
+                // 2. Load dynamic data from localStorage now that static data is available
+                const savedSubmissions = localStorage.getItem(SUBMISSIONS_KEY);
+                setSubmissions(savedSubmissions ? JSON.parse(savedSubmissions) : INITIAL_SUBMISSIONS);
+                
+                // 3. Check for a logged-in user and set the initial view
+                const savedUserKey = localStorage.getItem(CURRENT_USER_KEY);
+                if (savedUserKey) {
+                    const savedUser = usersData.find(u => u.id === savedUserKey);
+                    if (savedUser) {
+                        setCurrentUser(savedUser);
+                        setCurrentView('dashboard');
+                    } else {
+                        // Clean up invalid key and show login
+                        localStorage.removeItem(CURRENT_USER_KEY);
+                        setCurrentView('login');
+                    }
+                } else {
+                    setCurrentView('login');
+                }
+            } catch (err: any) {
+                console.error("Error al cargar los datos de la aplicación:", err);
+                setError(err.message || 'Ocurrió un error inesperado. Revisa la consola para más detalles.');
+                setCurrentView('error');
+            }
+        };
+
+        loadInitialData();
+    }, []); // Empty dependency array ensures this runs only once on mount
 
     const handleLogin = (user: User) => {
         setCurrentUser(user);
@@ -130,12 +150,12 @@ const App: React.FC = () => {
     const renderContent = () => {
         switch (currentView) {
             case 'loading':
-                return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white"><p className="text-xl animate-pulse">Cargando aplicación...</p></div>;
+                return <div className="min-h-screen bg-main-bg flex items-center justify-center text-text-primary"><p className="text-xl animate-pulse">Cargando aplicación...</p></div>;
             case 'error':
                  return (
-                    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+                    <div className="min-h-screen bg-main-bg flex items-center justify-center p-4">
                         <div className="w-full max-w-md p-8 space-y-4 bg-red-900/50 border border-red-700 rounded-2xl text-center">
-                            <h1 className="text-2xl font-bold text-white">Error en la Aplicación</h1>
+                            <h1 className="text-2xl font-bold text-text-primary">Error en la Aplicación</h1>
                             <p className="text-red-200">{error}</p>
                             <p className="text-red-300 text-sm">Ocurrió un error al iniciar la aplicación. Intenta limpiar el almacenamiento de tu navegador y recargar la página.</p>
                         </div>
@@ -171,7 +191,7 @@ const App: React.FC = () => {
         }
     };
 
-    return <div className="bg-gray-900 min-h-screen">{renderContent()}</div>;
+    return <div className="bg-main-bg min-h-screen">{renderContent()}</div>;
 };
 
 export default App;

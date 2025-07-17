@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Card, CardSortingTask, CardSortingSubmission, User } from '../types';
 
@@ -11,7 +12,7 @@ const DonutChart: React.FC<{ percentage: number; size?: number }> = ({ percentag
         <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
             <svg className="transform -rotate-90" width={size} height={size}>
                 <circle
-                    className="text-gray-600"
+                    className="text-text-secondary/30"
                     stroke="currentColor"
                     strokeWidth={strokeWidth}
                     fill="transparent"
@@ -30,16 +31,16 @@ const DonutChart: React.FC<{ percentage: number; size?: number }> = ({ percentag
                     style={{ strokeDasharray: circumference, strokeDashoffset: offset, transition: 'stroke-dashoffset 0.5s ease-in-out' }}
                 />
             </svg>
-            <span className="absolute text-xl font-bold text-white">{`${Math.round(percentage)}%`}</span>
+            <span className="absolute text-xl font-bold text-text-primary">{`${Math.round(percentage)}%`}</span>
         </div>
     );
 };
 
 const StatCard: React.FC<{ title: string; value?: string | number; children?: React.ReactNode }> = ({ title, value, children }) => (
-    <div className="bg-gray-700/50 p-4 rounded-lg flex items-center justify-between">
+    <div className="bg-main-bg/50 p-4 rounded-lg flex items-center justify-between">
         <div>
-            <p className="text-gray-400 text-sm font-medium">{title}</p>
-            {value !== undefined && <p className="text-2xl font-bold text-white">{value}</p>}
+            <p className="text-text-secondary text-sm font-medium">{title}</p>
+            {value !== undefined && <p className="text-2xl font-bold text-text-primary">{value}</p>}
         </div>
         {children}
     </div>
@@ -160,25 +161,25 @@ const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSorting
     };
     
     const getHeatmapColor = (percentage: number) => {
-        if (percentage > 80) return 'bg-indigo-600/80';
-        if (percentage > 60) return 'bg-indigo-600/60';
-        if (percentage > 40) return 'bg-indigo-600/40';
-        if (percentage > 20) return 'bg-indigo-600/20';
-        if (percentage > 0) return 'bg-indigo-600/10';
-        return 'bg-gray-800';
+        if (percentage > 80) return 'bg-interactive/80';
+        if (percentage > 60) return 'bg-interactive/60';
+        if (percentage > 40) return 'bg-interactive/40';
+        if (percentage > 20) return 'bg-interactive/20';
+        if (percentage > 0) return 'bg-interactive/10';
+        return 'bg-main-bg/50';
     }
 
     const renderTabs = () => (
-        <div className="flex border-b border-gray-700 mb-6">
-            <button onClick={() => setActiveTab('matrix')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'matrix' ? 'border-b-2 border-indigo-400 text-white' : 'text-gray-400 hover:text-white'}`}>Matriz de Acuerdo</button>
-            <button onClick={() => setActiveTab('cards')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'cards' ? 'border-b-2 border-indigo-400 text-white' : 'text-gray-400 hover:text-white'}`}>Análisis por Tarjeta</button>
+        <div className="flex border-b border-text-secondary/20 mb-6">
+            <button onClick={() => setActiveTab('matrix')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'matrix' ? 'border-b-2 border-interactive text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}>Matriz de Acuerdo</button>
+            <button onClick={() => setActiveTab('cards')} className={`px-4 py-2 text-sm font-medium transition-colors ${activeTab === 'cards' ? 'border-b-2 border-interactive text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}>Análisis por Tarjeta</button>
         </div>
     );
     
     if (!resultsData) {
          return (
-             <div className="text-center py-10 px-6 bg-gray-800 rounded-lg">
-                <p className="text-gray-400 text-lg">No hay tareas con resultados para mostrar.</p>
+             <div className="text-center py-10 px-6 bg-card-bg rounded-lg">
+                <p className="text-text-secondary text-lg">No hay tareas con resultados para mostrar.</p>
              </div>
          );
     }
@@ -187,18 +188,18 @@ const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSorting
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-grow">
-                     <h3 className="text-2xl font-semibold text-white">Resultados de Tareas</h3>
-                     <p className="text-gray-400">Selecciona una tarea para ver el análisis de los resultados.</p>
+                     <h3 className="text-2xl font-semibold text-text-primary">Resultados de Tareas</h3>
+                     <p className="text-text-secondary">Selecciona una tarea para ver el análisis de los resultados.</p>
                 </div>
                 {tasks.length > 0 && (
-                    <select onChange={e => setSelectedTaskId(e.target.value)} className="sm:w-1/3 p-3 bg-gray-700 rounded-md border border-gray-600 text-white focus:ring-2 focus:ring-indigo-500" value={selectedTaskId || ''}>
+                    <select onChange={e => setSelectedTaskId(e.target.value)} className="sm:w-1/3 p-3 bg-main-bg rounded-md border border-text-secondary/50 text-text-primary focus:ring-2 focus:ring-interactive" value={selectedTaskId || ''}>
                         {tasks.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}
                     </select>
                 )}
             </div>
 
-            <div className="bg-gray-900/50 rounded-xl p-6 space-y-8">
-                <h4 className="text-2xl font-bold text-indigo-300">{resultsData.task.title}</h4>
+            <div className="bg-main-bg/50 rounded-xl p-6 space-y-8">
+                <h4 className="text-2xl font-bold text-interactive">{resultsData.task.title}</h4>
 
                 {/* --- STATS --- */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -215,49 +216,49 @@ const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSorting
                 {/* --- CONTENT --- */}
                 {activeTab === 'matrix' && (
                     <div className="overflow-x-auto">
-                        <h5 className="text-xl font-semibold mb-4 text-white">Matriz de Acuerdo de Tarjetas</h5>
-                        <div className="bg-gray-700/50 p-4 rounded-lg mb-6 border border-gray-600">
-                            <h6 className="font-semibold text-white flex items-center gap-2">
+                        <h5 className="text-xl font-semibold mb-4 text-text-primary">Matriz de Acuerdo de Tarjetas</h5>
+                        <div className="bg-main-bg/50 p-4 rounded-lg mb-6 border border-text-secondary/20">
+                            <h6 className="font-semibold text-text-primary flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
                                     <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1.333A4.002 4.002 0 0115.333 10a4 4 0 01-5.333 3.667V17a1 1 0 11-2 0v-2.333a4 4 0 01-4-3.667A4.002 4.002 0 016.667 6V3a1 1 0 011-1h2zm1.667 8c0 .92-.746 1.667-1.667 1.667S8.333 10.92 8.333 10s.746-1.667 1.667-1.667S11.667 9.08 11.667 10z" clipRule="evenodd" />
                                 </svg>
                                 ¿Cómo leer esta matriz?
                             </h6>
-                            <p className="text-gray-300 mt-2 text-sm">
+                            <p className="text-text-secondary/90 mt-2 text-sm">
                                 Esta matriz muestra el acuerdo entre los participantes. Para leerla, elige una tarjeta en una fila y otra en una columna. La celda donde se cruzan muestra el porcentaje de participantes que colocaron <strong>ambas tarjetas en la misma categoría</strong>.
                             </p>
-                            <p className="text-gray-400 mt-1 text-xs">
-                                <span className="font-bold text-indigo-400">Un porcentaje alto (color intenso)</span> significa que la mayoría de los usuarios sienten que esas dos tarjetas pertenecen juntas.
+                            <p className="text-text-secondary mt-1 text-xs">
+                                <span className="font-bold text-interactive">Un porcentaje alto (color intenso)</span> significa que la mayoría de los usuarios sienten que esas dos tarjetas pertenecen juntas.
                             </p>
                         </div>
                         <table className="w-full border-collapse text-xs text-left">
                             <thead>
                                 <tr>
-                                    <th className="sticky left-0 bg-gray-800 p-2 border-b border-gray-600 z-10"></th>
+                                    <th className="sticky left-0 bg-card-bg p-2 border-b border-text-secondary/20 z-10"></th>
                                     {resultsData.task.cards.map(card => (
-                                        <th key={card.id} className="p-2 border-b border-gray-600 align-bottom">
-                                            <span className="[writing-mode:vertical-lr] transform rotate-180 text-gray-300 font-normal whitespace-nowrap">{card.content}</span>
+                                        <th key={card.id} className="p-2 border-b border-text-secondary/20 align-bottom">
+                                            <span className="[writing-mode:vertical-lr] transform rotate-180 text-text-secondary font-normal whitespace-nowrap">{card.content}</span>
                                         </th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody>
                                 {resultsData.task.cards.map((rowCard, rowIndex) => (
-                                    <tr key={rowCard.id} className="hover:bg-gray-700/50">
-                                        <th className="sticky left-0 bg-gray-800 p-2 border-b border-r border-gray-600 text-gray-300 font-normal text-left z-10">{rowCard.content}</th>
+                                    <tr key={rowCard.id} className="hover:bg-main-bg/50">
+                                        <th className="sticky left-0 bg-card-bg p-2 border-b border-r border-text-secondary/20 text-text-secondary font-normal text-left z-10">{rowCard.content}</th>
                                         {resultsData.task.cards.map((colCard, colIndex) => {
                                             if (colIndex < rowIndex) {
                                                 const percentage = getAgreementPercentage(rowCard.id, colCard.id);
                                                 return (
-                                                    <td key={colCard.id} className={`p-2 border-b border-gray-700 text-center ${getHeatmapColor(percentage)}`}>
-                                                        <span className="font-mono text-white">{Math.round(percentage)}%</span>
+                                                    <td key={colCard.id} className={`p-2 border-b border-text-secondary/20 text-center ${getHeatmapColor(percentage)}`}>
+                                                        <span className="font-mono text-text-primary">{Math.round(percentage)}%</span>
                                                     </td>
                                                 );
                                             }
                                             if (colIndex === rowIndex) {
-                                                return <td key={colCard.id} className="p-2 border-b border-gray-700 bg-gray-600"></td>
+                                                return <td key={colCard.id} className="p-2 border-b border-text-secondary/20 bg-text-secondary/20"></td>
                                             }
-                                            return <td key={colCard.id} className="p-2 border-b border-gray-700"></td>
+                                            return <td key={colCard.id} className="p-2 border-b border-text-secondary/20"></td>
                                         })}
                                     </tr>
                                 ))}
@@ -267,8 +268,8 @@ const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSorting
                 )}
                 {activeTab === 'cards' && (
                      <div className="space-y-4">
-                        <h5 className="text-xl font-semibold text-white">Análisis de Ubicación por Tarjeta</h5>
-                        <p className="text-gray-400 mb-4 text-sm italic">Nombres de categorías similares (ej. "Usuario", "usuarios", "Módulo") se agrupan automáticamente.</p>
+                        <h5 className="text-xl font-semibold text-text-primary">Análisis de Ubicación por Tarjeta</h5>
+                        <p className="text-text-secondary mb-4 text-sm italic">Nombres de categorías similares (ej. "Usuario", "usuarios", "Módulo") se agrupan automáticamente.</p>
                          {resultsData.task.cards.map(card => {
                              const analysis = resultsData.cardAnalysis.get(card.id);
                              if (!analysis) return null;
@@ -278,8 +279,8 @@ const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSorting
                              const totalPlacements = sortedGroups.reduce((sum, group) => sum + group.count, 0);
 
                              return (
-                                 <div key={card.id} className="p-4 bg-gray-700/80 rounded-md">
-                                     <p className="font-bold text-white text-lg">{card.content}</p>
+                                 <div key={card.id} className="p-4 bg-main-bg/80 rounded-md">
+                                     <p className="font-bold text-text-primary text-lg">{card.content}</p>
                                      {sortedGroups.length > 0 ? (
                                          <div className="mt-3 space-y-2">
                                              {sortedGroups.map(group => {
@@ -288,18 +289,18 @@ const TaskResults: React.FC<{ tasks: CardSortingTask[]; submissions: CardSorting
                                                   return (
                                                      <div key={group.displayName} title={tooltipText}>
                                                         <div className="flex justify-between text-sm mb-1">
-                                                            <span className="text-indigo-300">"{group.displayName}"</span>
-                                                            <span className="text-gray-400">{group.count} {group.count === 1 ? 'vez' : 'veces'} ({Math.round(percentage)}%)</span>
+                                                            <span className="text-interactive">"{group.displayName}"</span>
+                                                            <span className="text-text-secondary">{group.count} {group.count === 1 ? 'vez' : 'veces'} ({Math.round(percentage)}%)</span>
                                                         </div>
-                                                        <div className="w-full bg-gray-600 rounded-full h-2">
-                                                            <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
+                                                        <div className="w-full bg-text-secondary/30 rounded-full h-2">
+                                                            <div className="bg-interactive h-2 rounded-full" style={{ width: `${percentage}%` }}></div>
                                                         </div>
                                                      </div>
                                                   )
                                              })}
                                          </div>
                                      ) : (
-                                         <p className="mt-2 text-gray-400">Esta tarjeta no fue ubicada en ninguna categoría.</p>
+                                         <p className="mt-2 text-text-secondary">Esta tarjeta no fue ubicada en ninguna categoría.</p>
                                      )}
                                  </div>
                              )
@@ -351,7 +352,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ tasks, users, onBack }) 
         if (isLoading) {
             return (
                 <div className="text-center py-10">
-                    <p className="text-lg text-gray-400 animate-pulse">Cargando resultados desde el servidor...</p>
+                    <p className="text-lg text-text-secondary animate-pulse">Cargando resultados desde el servidor...</p>
                 </div>
             );
         }
@@ -367,8 +368,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ tasks, users, onBack }) 
         
         if (tasks.length === 0) {
             return (
-                 <div className="text-center py-10 px-6 bg-gray-800 rounded-lg">
-                    <p className="text-gray-400 text-lg">No hay tareas creadas en el sistema.</p>
+                 <div className="text-center py-10 px-6 bg-card-bg rounded-lg">
+                    <p className="text-text-secondary text-lg">No hay tareas creadas en el sistema.</p>
                 </div>
             )
         }
@@ -378,10 +379,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ tasks, users, onBack }) 
 
     return (
         <div className="container mx-auto max-w-7xl py-10 px-4">
-             <button onClick={onBack} className="mb-6 bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+             <button onClick={onBack} className="mb-6 bg-card-bg hover:brightness-125 text-white font-bold py-2 px-4 rounded-lg transition-colors">
                 &larr; Volver al Panel
             </button>
-            <div className="bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8">
+            <div className="bg-card-bg rounded-xl shadow-lg p-6 sm:p-8">
                 {renderResultsContent()}
             </div>
         </div>

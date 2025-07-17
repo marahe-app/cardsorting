@@ -1,5 +1,5 @@
 {
-  "name": "UX-Sort: Clasificación de Tarjetas y Análisis",
+  "name": "LCG UX Platform",
   "description": "Una aplicación para que los profesionales de la experiencia del usuario creen, distribuyan y analicen pruebas de clasificación de tarjetas. Los usuarios inician sesión con una clave única para completar tareas, mientras que los administradores pueden crear nuevas pruebas y revisar los resultados agregados.",
   "requestFramePermissions": [],
   "prompt": ""
