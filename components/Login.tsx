@@ -25,7 +25,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, users }) => {
     <div className="min-h-screen bg-main-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md p-8 space-y-8 bg-card-bg rounded-2xl shadow-2xl">
         <div className="text-center">
-          <img src="./assets/logo.svg" alt="LCG UX Platform Logo" className="mx-auto h-20 w-auto mb-4" />
+          <img src="../assets/logo.svg" alt="LCG UX Platform Logo" className="mx-auto h-20 w-auto mb-4" />
           <h1 className="text-4xl font-bold text-text-primary tracking-tight">LCG UX Platform</h1>
           <p className="mt-2 text-text-secondary">Ingresa tu clave de acceso única para comenzar.</p>
         </div>
